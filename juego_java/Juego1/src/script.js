@@ -101,7 +101,7 @@ function create() {
   this.physics.add.overlap(player, bombs, hitBomb, null, this);
 
   // Crear el texto de las vidas
-  vidasText = this.add.text(16, 50, "Vidas: 3", {
+  vidasText = this.add.text(16, 50, "Vidas: "+ vidas, {
     fontSize: "32px",
     fill: "#fff",
   });
@@ -119,6 +119,7 @@ function update() {
         fill: "#ff0000",
       })
       .setOrigin(0.5);
+      player.setVelocityX(0)
     return; // No hacer nada más, se detiene el juego
   }
 
@@ -156,6 +157,7 @@ function generateBomb() {
   var x = Phaser.Math.Between(100, 700);
   var bomb = bombs.create(x, 0, "bomb");
   bomb.setBounce(1);
+  bomb.setScale(2,2)
   bomb.setCollideWorldBounds(true);
   bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
 }
