@@ -27,6 +27,8 @@ var scoreText;
 var bombs;
 var vidas = 3;
 var vidasText;
+var puedePerderVida = true;
+
 
 function preload() {
   this.load.image("sky", "assets/Luna pixelart.png");
@@ -163,15 +165,21 @@ function generateBomb() {
 }
 
 function hitBomb(player, bomb) {
-  // Al tocar la bomba, no desactivarla, solo cambiar su color o hacer alguna otra acción si se desea
-  bomb.setTint(0xff0000); // Cambiar color de la bomba para indicar que ha tocado al jugador
+  if (!puedePerderVida) return;
 
-  // Restar una vida
+  puedePerderVida = false; // bloquear temporalmente
+
+  bomb.setTint(0xff0000); // efecto visual
   vidas -= 1;
   vidasText.setText("Vidas: " + vidas);
 
   if (vidas <= 0) {
-    // Cuando el jugador se quede sin vidas, mostrar el mensaje de fin de partida
-    player.setTint(0xff0000); // Cambiar color del jugador para indicar que ha perdido
+    player.setTint(0xff0000);
   }
+
+  // Restaurar la posibilidad de perder vida después de 1 segundo
+  player.scene.time.delayedCall(1000, () => {
+    puedePerderVida = true;
+    bomb.clearTint(); // quitar el tinte rojo si quieres
+  });
 }
