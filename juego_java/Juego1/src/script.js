@@ -29,7 +29,7 @@ var vidas = 3;
 var vidasText;
 
 function preload() {
-  this.load.image("sky", "assets/sky.png");
+  this.load.image("sky", "assets/Luna pixelart.png");
   this.load.image("ground", "assets/ground.png");
   this.load.image("star", "assets/star.png");
   this.load.image("bomb", "assets/bomb.png");
@@ -40,7 +40,9 @@ function preload() {
 }
 
 function create() {
-  this.add.image(400, 300, "sky").setScale(2, 2);
+  this.add.image(0, 0, 'sky')
+    .setOrigin(0)
+    .setDisplaySize(this.sys.game.config.width, this.sys.game.config.height - 30);
 
   platforms = this.physics.add.staticGroup();
   platforms.create(650, 220, "ground");
@@ -90,7 +92,7 @@ function create() {
 
   scoreText = this.add.text(16, 16, "Puntuación: 0", {
     fontSize: "32px",
-    fill: "#000",
+    fill: "#fff",
   });
 
   bombs = this.physics.add.group();
@@ -101,7 +103,7 @@ function create() {
   // Crear el texto de las vidas
   vidasText = this.add.text(16, 50, "Vidas: 3", {
     fontSize: "32px",
-    fill: "#000",
+    fill: "#fff",
   });
 
   // Colisión de la bomba con las plataformas
@@ -112,7 +114,7 @@ function update() {
   if (vidas <= 0) {
     // Si no quedan vidas, mostrar mensaje de fin de la partida
     this.add
-      .text(300, 250, "Fin de la partida", {
+      .text(400, 270 , "Fin de la partida", {
         fontSize: "64px",
         fill: "#ff0000",
       })
