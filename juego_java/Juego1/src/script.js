@@ -52,7 +52,7 @@ function create() {
   platforms.create(400, 568, "ground").setScale(2, 2).refreshBody();
 
   player = this.physics.add.sprite(100, 450, "dude", 0);
-  player.setScale(0.2); // 👈 Reduce al 50% de su tamaño
+  player.setScale(0.2); 
   player.setCollideWorldBounds(true);
   player.setBounce(0.3);
 
