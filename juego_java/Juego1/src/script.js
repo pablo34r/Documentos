@@ -46,13 +46,13 @@ function create() {
     .setOrigin(0)
     .setDisplaySize(this.sys.game.config.width, this.sys.game.config.height - 30);
 
-  platforms = this.physics.add.staticGroup();
-  platforms.create(650, 220, "ground");
-  platforms.create(100, 380, "ground");
-  platforms.create(400, 568, "ground").setScale(2, 2).refreshBody();
-
+    platforms = this.physics.add.staticGroup();
+  platforms.create(650, 230, "ground").setScale(1, 0.4).refreshBody();;
+  platforms.create(100, 400, "ground").setScale(1, 0.4).refreshBody();
+  platforms.create(400, 568, "ground").setScale(2, 0.6).refreshBody();
   player = this.physics.add.sprite(100, 450, "dude", 0);
   player.setScale(0.2); 
+
   player.setCollideWorldBounds(true);
   player.setBounce(0.3);
 
@@ -159,7 +159,7 @@ function generateBomb() {
   var x = Phaser.Math.Between(100, 700);
   var bomb = bombs.create(x, 0, "bomb");
   bomb.setBounce(1);
-  bomb.setScale(2,2)
+  bomb.setScale(2,2).refreshBody()
   bomb.setCollideWorldBounds(true);
   bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
 }
