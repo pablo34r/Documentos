@@ -21,10 +21,8 @@ var game = new Phaser.Game(config);
 var player;
 var platforms;
 var cursors;
-var stars;
 var score = 0;
 var scoreText;
-var bombs;
 var vidas = 3;
 var vidasText;
 var puedePerderVida = true;
@@ -32,8 +30,6 @@ var puedePerderVida = true;
 function preload() {
   this.load.image("sky", "assets/Luna pixelart.png");
   this.load.image("ground", "assets/ground.png");
-  this.load.image("star", "assets/star.png");
-  this.load.image("bomb", "assets/bomb.png");
   this.load.image("bullet", "assets/bala.png");
 
   //dude sprites
@@ -95,7 +91,7 @@ function create() {
     repeat: -1,
   });
 
-  //animaciones mirando arriba
+  //----animaciones mirando arriba
   this.anims.create({
     key: "lookUp",
     frames: [{ key: "dudeUp", frame: 4 }],
@@ -116,32 +112,10 @@ function create() {
     repeat: -1,
   });
 
-  this.physics.add.collider(player, platforms);
-
-  cursors = this.input.keyboard.createCursorKeys();
-
-  stars = this.physics.add.group({
-    key: "star",
-    repeat: 8,
-    setXY: { x: 12, y: 0, stepX: 70 },
-  });
-
-  stars.children.iterate(function (child) {
-    child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
-  });
-
-  this.physics.add.collider(stars, platforms);
-
   scoreText = this.add.text(16, 16, "Puntuación: 0", {
     fontSize: "32px",
     fill: "#fff",
   });
-
-  bombs = this.physics.add.group();
-  bullets = this.physics.add.group();
-
-  this.physics.add.overlap(player, stars, collectStar, null, this);
-  this.physics.add.overlap(player, bombs, hitBomb, null, this);
 
   // Crear el texto de las vidas
   vidasText = this.add.text(16, 50, "Vidas: " + vidas, {
@@ -149,8 +123,11 @@ function create() {
     fill: "#fff",
   });
 
-  // Colisión de la bomba con las plataformas
-  this.physics.add.collider(bombs, platforms);
+  //colisiones
+  this.physics.add.collider(player, platforms);
+
+  cursors = this.input.keyboard.createCursorKeys();
+  bullets = this.physics.add.group();
 }
 
 function update() {
@@ -163,7 +140,7 @@ function update() {
       })
       .setOrigin(0.5);
     player.setVelocityX(0);
-    return; // No hacer nada más, se detiene el juego
+    return;
   }
 
   //animaciones mirando arriba
@@ -211,49 +188,6 @@ function update() {
 }
 
 //-----secondary functions
-function collectStar(player, star) {
-  star.disableBody(true, true);
-
-  score += 5;
-  scoreText.setText("Puntuación: " + score);
-
-  if (stars.countActive(true) === 0) {
-    stars.children.iterate(function (child) {
-      child.enableBody(true, child.x, 0, true, true);
-    });
-    generateBomb();
-  }
-}
-
-function generateBomb() {
-  var x = Phaser.Math.Between(100, 700);
-  var bomb = bombs.create(x, 0, "bomb");
-  bomb.setBounce(1);
-  bomb.setScale(2, 2).refreshBody();
-  bomb.setCollideWorldBounds(true);
-  bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
-}
-
-function hitBomb(player, bomb) {
-  if (!puedePerderVida) return;
-
-  puedePerderVida = false; // bloquear temporalmente
-
-  bomb.setTint(0xff0000); // efecto visual
-  vidas -= 1;
-  vidasText.setText("Vidas: " + vidas);
-
-  if (vidas <= 0) {
-    player.setTint(0xff0000);
-  }
-
-  // Restaurar la posibilidad de perder vida después de 1 segundo
-  player.scene.time.delayedCall(1000, () => {
-    puedePerderVida = true;
-    bomb.clearTint(); // quitar el tinte rojo si quieres
-  });
-}
-
 function shootBullet() {
   let bulletSpeed = 800;
   let direction = player.facing === "right" ? 1 : -1;
