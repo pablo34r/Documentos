@@ -6,7 +6,7 @@ const config = {
     default: "arcade",
     arcade: {
       gravity: { y: 300 },
-      debug: true,
+      debug: false,
     },
   },
   scene: {
@@ -34,6 +34,9 @@ function preload() {
   this.load.image("ground", "assets/ground.png");
   this.load.image("star", "assets/star.png");
   this.load.image("bomb", "assets/bomb.png");
+  this.load.image("bullet", "assets/bala.png");
+
+  //dude sprites
   this.load.spritesheet("dude", "assets/dude.png", {
     frameWidth: 320,
     frameHeight: 320,
@@ -47,6 +50,11 @@ function preload() {
 function create() {
   //claves personalizadas
   this.keyW = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
+  this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+
+  //tiempo de intervalos de balas
+  this.lastShootTime = 0;
+  this.shootCooldown = 300;
 
   this.add
     .image(0, 0, "sky")
@@ -130,6 +138,7 @@ function create() {
   });
 
   bombs = this.physics.add.group();
+  bullets = this.physics.add.group();
 
   this.physics.add.overlap(player, stars, collectStar, null, this);
   this.physics.add.overlap(player, bombs, hitBomb, null, this);
@@ -176,12 +185,24 @@ function update() {
   if (cursors.left.isDown) {
     player.setVelocityX(-160);
     player.anims.play("left", true);
+    player.facing = "left";
   } else if (cursors.right.isDown) {
     player.setVelocityX(160);
     player.anims.play("right", true);
+    player.facing = "right";
   } else {
     player.setVelocityX(0);
     player.anims.play("turn");
+  }
+
+  if (this.keyE.isDown) {
+    const currentTime = this.time.now;
+
+    //intervalo de tiempo entre disparo
+    if (currentTime - this.lastShootTime > this.shootCooldown) {
+      shootBullet();
+      this.lastShootTime = currentTime;
+    }
   }
 
   if (cursors.up.isDown && player.body.touching.down) {
@@ -189,6 +210,7 @@ function update() {
   }
 }
 
+//-----secondary functions
 function collectStar(player, star) {
   star.disableBody(true, true);
 
@@ -230,4 +252,19 @@ function hitBomb(player, bomb) {
     puedePerderVida = true;
     bomb.clearTint(); // quitar el tinte rojo si quieres
   });
+}
+
+function shootBullet() {
+  let bulletSpeed = 800;
+  let direction = player.facing === "right" ? 1 : -1;
+
+  let bulletX = player.x + (direction + 20);
+  let bulletY = player.y;
+
+  let bullet = bullets.create(bulletX, bulletY, "bullet");
+  bullet.body.setAllowGravity(false);
+  bullet.setScale(0.08, 0.1);
+  bullet.setVelocityX(bulletSpeed * direction);
+
+  bullet.setFlipX(direction === -1);
 }
