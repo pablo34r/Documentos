@@ -6,7 +6,7 @@ const config = {
     default: "arcade",
     arcade: {
       gravity: { y: 300 },
-      debug: false,
+      debug: true,
     },
   },
   scene: {
@@ -29,7 +29,6 @@ var vidas = 3;
 var vidasText;
 var puedePerderVida = true;
 
-
 function preload() {
   this.load.image("sky", "assets/Luna pixelart.png");
   this.load.image("ground", "assets/ground.png");
@@ -39,23 +38,35 @@ function preload() {
     frameWidth: 320,
     frameHeight: 320,
   });
+  this.load.spritesheet("dudeUp", "assets/dudeUp.png", {
+    frameWidth: 320,
+    frameHeight: 320,
+  });
 }
 
 function create() {
-  this.add.image(0, 0, 'sky')
-    .setOrigin(0)
-    .setDisplaySize(this.sys.game.config.width, this.sys.game.config.height - 30);
+  //claves personalizadas
+  this.keyW = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
 
-    platforms = this.physics.add.staticGroup();
-  platforms.create(650, 230, "ground").setScale(1, 0.4).refreshBody();;
+  this.add
+    .image(0, 0, "sky")
+    .setOrigin(0)
+    .setDisplaySize(
+      this.sys.game.config.width,
+      this.sys.game.config.height - 30
+    );
+
+  platforms = this.physics.add.staticGroup();
+  platforms.create(650, 230, "ground").setScale(1, 0.4).refreshBody();
   platforms.create(100, 400, "ground").setScale(1, 0.4).refreshBody();
   platforms.create(400, 568, "ground").setScale(2, 0.6).refreshBody();
   player = this.physics.add.sprite(100, 450, "dude", 0);
-  player.setScale(0.2); 
+  player.setScale(0.2);
 
   player.setCollideWorldBounds(true);
   player.setBounce(0.3);
 
+  //animaciones normales
   this.anims.create({
     key: "left",
     frames: this.anims.generateFrameNumbers("dude", { start: 0, end: 3 }),
@@ -72,6 +83,27 @@ function create() {
   this.anims.create({
     key: "right",
     frames: this.anims.generateFrameNumbers("dude", { start: 5, end: 8 }),
+    frameRate: 10,
+    repeat: -1,
+  });
+
+  //animaciones mirando arriba
+  this.anims.create({
+    key: "lookUp",
+    frames: [{ key: "dudeUp", frame: 4 }],
+    frameRate: 20,
+  });
+
+  this.anims.create({
+    key: "lookUpRight",
+    frames: this.anims.generateFrameNumbers("dudeUp", { start: 5, end: 8 }),
+    frameRate: 10,
+    repeat: -1,
+  });
+
+  this.anims.create({
+    key: "lookUpLeft",
+    frames: this.anims.generateFrameNumbers("dudeUp", { start: 0, end: 3 }),
     frameRate: 10,
     repeat: -1,
   });
@@ -103,7 +135,7 @@ function create() {
   this.physics.add.overlap(player, bombs, hitBomb, null, this);
 
   // Crear el texto de las vidas
-  vidasText = this.add.text(16, 50, "Vidas: "+ vidas, {
+  vidasText = this.add.text(16, 50, "Vidas: " + vidas, {
     fontSize: "32px",
     fill: "#fff",
   });
@@ -116,15 +148,31 @@ function update() {
   if (vidas <= 0) {
     // Si no quedan vidas, mostrar mensaje de fin de la partida
     this.add
-      .text(400, 270 , "Fin de la partida", {
+      .text(400, 270, "Fin de la partida", {
         fontSize: "64px",
         fill: "#ff0000",
       })
       .setOrigin(0.5);
-      player.setVelocityX(0)
+    player.setVelocityX(0);
     return; // No hacer nada más, se detiene el juego
   }
 
+  //animaciones mirando arriba
+  if (this.keyW.isDown && cursors.right.isDown) {
+    player.anims.play("lookUpRight", true);
+    player.setVelocityX(160);
+    return;
+  } else if (this.keyW.isDown && cursors.left.isDown) {
+    player.anims.play("lookUpLeft", true);
+    player.setVelocityX(-160);
+    return;
+  } else if (this.keyW.isDown) {
+    player.anims.play("lookUp", true);
+    player.setVelocityX(0);
+    return;
+  }
+
+  //animaciones normales
   if (cursors.left.isDown) {
     player.setVelocityX(-160);
     player.anims.play("left", true);
@@ -159,7 +207,7 @@ function generateBomb() {
   var x = Phaser.Math.Between(100, 700);
   var bomb = bombs.create(x, 0, "bomb");
   bomb.setBounce(1);
-  bomb.setScale(2,2).refreshBody()
+  bomb.setScale(2, 2).refreshBody();
   bomb.setCollideWorldBounds(true);
   bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
 }
