@@ -251,7 +251,7 @@ this.physics.add.overlap(player, boosts, collectBoost, null, this);
     fill: "#fff",
   });
 
-  // Crear el texto de las vidas
+  
   vidasText = this.add.text(16, 50, "Vidas: " + vidas, {
     fontSize: "32px",
     fill: "#fff",
@@ -262,9 +262,9 @@ this.physics.add.overlap(player, boosts, collectBoost, null, this);
 
   cursors = this.input.keyboard.createCursorKeys();
   bullets = this.physics.add.group();
-  // Cada 15 segundos aparece un nuevo boost aleatorio
+ 
 this.time.addEvent({
-  delay: 15000, // 15000 milisegundos = 15 segundos
+  delay: 15000, 
   callback: () => spawnBoost(this),
   loop: true,
 });
@@ -328,17 +328,15 @@ if (cursors.left.isDown) {
   }
 }
 
-//-----secondary functions
 
-//dude actions
 function executeActions(scene, action) {
   const configDude = dudeConfigs[action];
   if (!configDude) return;
 
-  // Aplica boost de velocidad solo si la acción es de movimiento lateral
+ 
   let velocidadX = configDude.setVelocityX;
   if (velocidadBoostActiva && (action === "left" || action === "right" || action === "lookUpLeft" || action === "lookUpRight")) {
-    velocidadX = (velocidadX > 0 ? 300 : -300); // aumenta velocidad
+    velocidadX = (velocidadX > 0 ? 300 : -300); 
   }
 
   player.anims.play(configDude.action, true);
@@ -381,12 +379,12 @@ function collectBoost(player, boost) {
     setTimeout(() => {
       escudoActivo = false;
       player.clearTint();
-    }, 10000); // 10 segundos de escudo
+    }, 10000); 
   } else if (tipo === "BOST3") {
     velocidadBoostActiva = true;
     setTimeout(() => {
       velocidadBoostActiva = false;
-    }, 10000); // 10 segundos de velocidad
+    }, 10000); 
   }
 
   boost.disableBody(true, true);
