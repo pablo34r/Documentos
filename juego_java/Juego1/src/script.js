@@ -22,6 +22,10 @@ const config = {
   type: Phaser.AUTO,
   width: 1920,
   height: 1000,
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+  },
   physics: {
     default: "arcade",
     arcade: {
@@ -35,6 +39,7 @@ const config = {
     update: update,
   },
 };
+
 
 var game = new Phaser.Game(config);
 
@@ -292,3 +297,4 @@ function update() {
     }
   });
 }
+
