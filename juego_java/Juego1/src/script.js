@@ -1,7 +1,7 @@
 const config = {
   type: Phaser.AUTO,
-  width: 800,
-  height: 600,
+  width: 1920,
+  height: 1000,
   physics: {
     default: "arcade",
     arcade: {
@@ -122,11 +122,21 @@ const dudeConfigs = {
   },
 };
 
+const jumpPoints = [
+  { x: 500, y: 849 },
+  { x: 1350, y: 849 },
+  { x: 803, y: 849 },
+  { x: 1158, y: 849 },
+  { x: 1070, y: 870.6 },
+  { x: 881, y: 870.6 },
+];
+
 var game = new Phaser.Game(config);
 
 var player;
 var platforms;
 var cursors;
+var bullets;
 var score = 0;
 var scoreText;
 var vidas = 3;
@@ -145,6 +155,12 @@ function preload() {
     frameHeight: 320,
   });
   this.load.spritesheet("dudeUp", "assets/dudeUp.png", {
+    frameWidth: 320,
+    frameHeight: 320,
+  });
+
+  //enemies sprites
+  this.load.spritesheet("enemy", "assets/dude.png", {
     frameWidth: 320,
     frameHeight: 320,
   });
@@ -168,15 +184,18 @@ function create() {
     );
 
   platforms = this.physics.add.staticGroup();
-  platforms.create(650, 230, "ground").setScale(1, 0.4).refreshBody();
-  platforms.create(100, 400, "ground").setScale(1, 0.4).refreshBody();
-  platforms.create(400, 568, "ground").setScale(2, 0.6).refreshBody();
+
+  platforms.create(900, 735, "ground").setScale(1, 0.5).refreshBody();
+  platforms.create(1000, 735, "ground").setScale(1, 0.5).refreshBody();
+
+  //piso inferior
+  platforms.create(400, 935, "ground").setScale(2, 1).refreshBody(); //izquierda
+  platforms.create(970, 935, "ground").setScale(0.5, 0.6).refreshBody(); //centro
+  platforms.create(1550, 935, "ground").setScale(2, 1).refreshBody(); //derecha
 
   //player
-  player = this.physics.add.sprite(100, 450, "dude", 0);
-  player.setScale(0.2);
-  player.setCollideWorldBounds(true);
-  player.setBounce(0.3);
+  player = this.physics.add.sprite(100, 700, "dude", 0);
+  spritePhysics(this, player);
 
   //gun
   this.weapon = this.add.sprite(player.x + 20, player.y - 20, "gun");
@@ -224,6 +243,27 @@ function create() {
     repeat: -1,
   });
 
+  //----animaciones enemigos
+  this.anims.create({
+    key: "enemyLeft",
+    frames: this.anims.generateFrameNumbers("enemy", { start: 0, end: 3 }),
+    frameRate: 10,
+    repeat: -1,
+  });
+
+  this.anims.create({
+    key: "enemyRight",
+    frames: this.anims.generateFrameNumbers("enemy", { start: 5, end: 8 }),
+    frameRate: 10,
+    repeat: -1,
+  });
+
+  this.anims.create({
+    key: "enemyTurn",
+    frames: [{ key: "dude", frame: 4 }],
+    frameRate: 20,
+  });
+
   scoreText = this.add.text(16, 16, "Puntuación: 0", {
     fontSize: "32px",
     fill: "#fff",
@@ -235,19 +275,34 @@ function create() {
     fill: "#fff",
   });
 
-  //colisiones
-  this.physics.add.collider(player, platforms);
+  //enemigos
+  this.enemies = this.physics.add.group();
 
   cursors = this.input.keyboard.createCursorKeys();
   bullets = this.physics.add.group();
+
+  //spawn enemies
+  const enemyPositions = [
+    { x: 2000, y: 800 },
+    { x: 1800, y: 800 },
+  ];
+  spawnEnemies(this, enemyPositions);
+
+  //collisions
+  this.physics.add.overlap(bullets, this.enemies, hitEnemy, null, this);
+  this.physics.add.overlap(player, this.enemies, playerHitByEnemy, null, this);
+  this.physics.add.collider(bullets, platforms, destroyBullet, null, this);
 }
 
 function update() {
-  this.weapon.setPosition(player.x, player.y);
+  this.weapon.setPosition(player.x, player.y); //weapon
+
+  //enemies
+  EnemyFollowsPlayer(this);
 
   if (vidas <= 0) {
     this.add
-      .text(400, 270, "Fin de la partida", {
+      .text(960, 500, "Fin de la partida", {
         fontSize: "64px",
         fill: "#ff0000",
       })
@@ -276,7 +331,7 @@ function update() {
 
     //intervalo de tiempo entre disparo
     if (currentTime - this.lastShootTime > this.shootCooldown) {
-      shootBullet();
+      shootBullet(this);
       this.lastShootTime = currentTime;
     }
   }
@@ -284,6 +339,18 @@ function update() {
   if (cursors.up.isDown && player.body.touching.down) {
     player.setVelocityY(-330);
   }
+
+  // Limpiar balas que salen de la pantalla
+  bullets.children.getArray().forEach((bullet) => {
+    if (
+      bullet.x < -100 ||
+      bullet.x > 2020 ||
+      bullet.y < -100 ||
+      bullet.y > 1100
+    ) {
+      bullet.destroy();
+    }
+  });
 }
 
 //-----secondary functions
@@ -291,7 +358,7 @@ function update() {
 //dude actions
 function executeActions(scene, action) {
   const configDude = dudeConfigs[action];
-  if (!configDude) return; // No se ejecuta si no hay configuración para la acción
+  if (!configDude) return;
 
   player.anims.play(configDude.action, true);
   player.setVelocityX(configDude.setVelocityX);
@@ -307,9 +374,9 @@ function executeActions(scene, action) {
 }
 
 //bullets
-function shootBullet() {
+function shootBullet(scene) {
   const config = bulletConfigs[player.facing];
-  if (!config) return; // No se dispara si no hay configuración para la dirección
+  if (!config) return;
 
   const bulletX = player.x + config.offsetX;
   const bulletY = player.y + config.offsetY;
@@ -320,4 +387,177 @@ function shootBullet() {
   bullet.setVelocity(config.velocityX, config.velocityY);
   bullet.setFlipX(config.flipX);
   bullet.rotation = Phaser.Math.DegToRad(config.rotation);
+
+  bullet.damage = 1;
+}
+
+function spawnEnemies(scene, positions) {
+  positions.forEach((pos) => {
+    const enemy = scene.enemies.create(pos.x, pos.y, "enemy");
+    spritePhysics(scene, enemy);
+
+    enemy.health = 3;
+    enemy.damage = 1;
+  });
+}
+
+function spritePhysics(scene, sprite) {
+  sprite.setCollideWorldBounds(true);
+  sprite.setScale(0.2);
+  sprite.setBounce(0.2);
+  scene.physics.add.collider(sprite, platforms);
+}
+
+function EnemyFollowsPlayer(scene) {
+  scene.enemies.getChildren().forEach((enemy) => {
+    const speed = 100;
+    const jumpForce = -330;
+
+    // Calcular distancia al jugador
+    const distanceX = Math.abs(player.x - enemy.x);
+    const distanceY = player.y - enemy.y;
+
+    // Movimiento horizontal SIEMPRE hacia el jugador
+    if (player.x < enemy.x) {
+      enemy.setVelocityX(-speed);
+      enemy.play("enemyLeft", true);
+    } else if (player.x > enemy.x) {
+      enemy.setVelocityX(speed);
+      enemy.play("enemyRight", true);
+    } else {
+      enemy.setVelocityX(0);
+      enemy.play("enemyTurn", true);
+    }
+
+    // salto para superar obstáculos
+    if (enemy.body.blocked.down) {
+      // Verificar si hay un obstáculo delante
+      const direction = player.x > enemy.x ? 1 : -1;
+      const checkDistance = 80;
+
+      const obstacleAhead = scene.physics
+        .overlapRect(
+          enemy.x + (direction * checkDistance) / 2,
+          enemy.y - enemy.height / 2,
+          checkDistance,
+          enemy.height
+        )
+        .some((obj) => obj.gameObject && platforms.contains(obj.gameObject));
+
+      // Verificar si NO hay techo encima
+      const ceilingAbove = scene.physics
+        .overlapRect(
+          enemy.x - enemy.width / 2,
+          enemy.y - enemy.height - 10,
+          enemy.width,
+          10
+        )
+        .some((obj) => obj.gameObject && platforms.contains(obj.gameObject));
+
+      // Saltar si hay obstáculo adelante
+      const shouldJump =
+        (obstacleAhead || // Hay obstáculo adelante
+          distanceY < -50 || // Jugador está arriba
+          (distanceX < 1000 && distanceY < -20)) && // Jugador cerca y un poco arriba
+        !ceilingAbove; // Y no hay techo encima
+
+      if (shouldJump) {
+        enemy.setVelocityY(jumpForce);
+      }
+    }
+  });
+}
+
+//----- Funciones del combate ----
+function hitEnemy(bullet, enemy) {
+  // Destruir la bala
+  bullet.destroy();
+
+  // Destruir el enemigo
+  enemy.destroy();
+
+  // Aumentar puntuación
+  score += 100;
+  scoreText.setText("Puntuación: " + score);
+
+  createDestroyEffect(this, enemy.x, enemy.y);
+}
+
+// Función cuando un enemigo toca al jugador
+function playerHitByEnemy(player, enemy) {
+  if (!puedePerderVida) return;
+
+  vidas--;
+  vidasText.setText("Vidas: " + vidas);
+
+  playerTakeDamageEffect(this, player);
+
+  // knockback
+  const knockbackForce = 200;
+  const direction = player.x > enemy.x ? 1 : -1;
+  player.setVelocityX(direction * knockbackForce);
+  player.setVelocityY(-150);
+  puedePerderVida = false;
+
+  const scene = player.scene;
+  scene.time.delayedCall(1500, () => {
+    puedePerderVida = true;
+  });
+
+  let flashCount = 0;
+  const flashInterval = setInterval(() => {
+    player.setAlpha(player.alpha === 1 ? 0.3 : 1);
+    flashCount++;
+    if (flashCount >= 10) {
+      clearInterval(flashInterval);
+      player.setAlpha(1);
+    }
+  }, 150);
+}
+
+// Función cuando una bala toca una plataforma
+function destroyBullet(bullet, platform) {
+  bullet.destroy();
+}
+
+// Efecto visual cuando un enemigo es destruido
+function createDestroyEffect(scene, x, y) {
+  for (let i = 0; i < 6; i++) {
+    const particle = scene.add.rectangle(x, y, 4, 4, 0xff0000);
+    const angle = (i / 6) * Math.PI * 2;
+    const speed = 80 + Math.random() * 40;
+
+    // Calcular velocidad
+    const velX = Math.cos(angle) * speed;
+    const velY = Math.sin(angle) * speed;
+
+    // Animar la partícula manualmente
+    scene.tweens.add({
+      targets: particle,
+      x: x + velX * 0.5,
+      y: y + velY * 0.5,
+      alpha: 0,
+      duration: 400,
+      onComplete: () => {
+        particle.destroy();
+      },
+    });
+  }
+}
+
+// Efecto visual cuando el jugador recibe daño
+function playerTakeDamageEffect(scene, player) {
+  let flashCount = 0;
+  const flashTimer = scene.time.addEvent({
+    delay: 100,
+    callback: () => {
+      player.setAlpha(player.alpha === 1 ? 0.5 : 1);
+      flashCount++;
+      if (flashCount >= 15) {
+        flashTimer.destroy();
+        player.setAlpha(1); // Asegurar que quede visible
+      }
+    },
+    loop: true,
+  });
 }
