@@ -1,0 +1,42 @@
+export const bulletConfigs = {
+  right: {
+    offsetX: 20,
+    offsetY: 10,
+    velocityX: 800,
+    velocityY: 0,
+    flipX: false,
+    rotation: 0,
+  },
+  left: {
+    offsetX: -20,
+    offsetY: 10,
+    velocityX: -800,
+    velocityY: 0,
+    flipX: true,
+    rotation: 0,
+  },
+  lookUpRight: {
+    offsetX: 30,
+    offsetY: -20,
+    velocityX: 800,
+    velocityY: -800,
+    flipX: false,
+    rotation: -45,
+  },
+  lookUpLeft: {
+    offsetX: -30,
+    offsetY: -20,
+    velocityX: -800,
+    velocityY: -800,
+    flipX: true,
+    rotation: 45,
+  },
+  lookUp: {
+    offsetX: 15,
+    offsetY: -30,
+    velocityX: 0,
+    velocityY: -800,
+    flipX: false,
+    rotation: -90,
+  },
+};
