@@ -132,12 +132,20 @@ var scoreText;
 var vidas = 3;
 var vidasText;
 var puedePerderVida = true;
+var bullets;
+var boosts;
+var velocidadBoostActiva = false;
+var escudoActivo = false;
+
 
 function preload() {
   this.load.image("sky", "assets/Luna pixelart.png");
   this.load.image("ground", "assets/ground.png");
   this.load.image("bullet", "assets/bala.png");
   this.load.image("gun", "assets/Gun.png");
+  this.load.image("BOST1", "assets/BOST1.png"); 
+this.load.image("BOST2", "assets/BOST2.png"); 
+this.load.image("BOST3", "assets/BOST3.png"); 
 
   //dude sprites
   this.load.spritesheet("dude", "assets/dude.png", {
@@ -158,6 +166,14 @@ function create() {
   //tiempo de intervalos de balas
   this.lastShootTime = 0;
   this.shootCooldown = 300;
+  boosts = this.physics.add.group();
+
+boosts.create(300, 0, "BOST1").setScale(0.3).setBounce(0.5);
+boosts.create(500, 0, "BOST2").setScale(0.3).setBounce(0.5);
+boosts.create(700, 0, "BOST3").setScale(0.3).setBounce(0.5);
+
+
+
 
   this.add
     .image(0, 0, "sky")
@@ -165,6 +181,8 @@ function create() {
     .setDisplaySize(
       this.sys.game.config.width,
       this.sys.game.config.height - 30
+  
+  
     );
 
   platforms = this.physics.add.staticGroup();
@@ -172,11 +190,15 @@ function create() {
   platforms.create(100, 400, "ground").setScale(1, 0.4).refreshBody();
   platforms.create(400, 568, "ground").setScale(2, 0.6).refreshBody();
 
-  //player
-  player = this.physics.add.sprite(100, 450, "dude", 0);
-  player.setScale(0.2);
-  player.setCollideWorldBounds(true);
-  player.setBounce(0.3);
+
+player = this.physics.add.sprite(100, 450, "dude", 0);
+player.setScale(0.2);
+player.setCollideWorldBounds(true);
+player.setBounce(0.3);
+
+
+this.physics.add.collider(boosts, platforms);
+this.physics.add.overlap(player, boosts, collectBoost, null, this);
 
   //gun
   this.weapon = this.add.sprite(player.x + 20, player.y - 20, "gun");
@@ -240,10 +262,30 @@ function create() {
 
   cursors = this.input.keyboard.createCursorKeys();
   bullets = this.physics.add.group();
+  // Cada 15 segundos aparece un nuevo boost aleatorio
+this.time.addEvent({
+  delay: 15000, // 15000 milisegundos = 15 segundos
+  callback: () => spawnBoost(this),
+  loop: true,
+});
+
 }
 
 function update() {
   this.weapon.setPosition(player.x, player.y);
+const velocidad = velocidadBoostActiva ? 300 : 160;
+
+if (cursors.left.isDown) {
+  player.setVelocityX(-velocidad);
+  player.anims.play("left", true);
+} else if (cursors.right.isDown) {
+  player.setVelocityX(velocidad);
+  player.anims.play("right", true);
+} else {
+  player.setVelocityX(0);
+  player.anims.play("turn");
+}
+
 
   if (vidas <= 0) {
     this.add
@@ -291,10 +333,16 @@ function update() {
 //dude actions
 function executeActions(scene, action) {
   const configDude = dudeConfigs[action];
-  if (!configDude) return; // No se ejecuta si no hay configuración para la acción
+  if (!configDude) return;
+
+  // Aplica boost de velocidad solo si la acción es de movimiento lateral
+  let velocidadX = configDude.setVelocityX;
+  if (velocidadBoostActiva && (action === "left" || action === "right" || action === "lookUpLeft" || action === "lookUpRight")) {
+    velocidadX = (velocidadX > 0 ? 300 : -300); // aumenta velocidad
+  }
 
   player.anims.play(configDude.action, true);
-  player.setVelocityX(configDude.setVelocityX);
+  player.setVelocityX(velocidadX);
   player.facing = configDude.facing;
   scene.weapon.setVisible(configDude.visible);
 
@@ -320,4 +368,34 @@ function shootBullet() {
   bullet.setVelocity(config.velocityX, config.velocityY);
   bullet.setFlipX(config.flipX);
   bullet.rotation = Phaser.Math.DegToRad(config.rotation);
+}
+function collectBoost(player, boost) {
+  const tipo = boost.texture.key;
+
+  if (tipo === "BOST1") {
+    vidas += 1;
+    vidasText.setText("Vidas: " + vidas);
+  } else if (tipo === "BOST2") {
+    escudoActivo = true;
+    player.setTint(0x00ffff);
+    setTimeout(() => {
+      escudoActivo = false;
+      player.clearTint();
+    }, 10000); // 10 segundos de escudo
+  } else if (tipo === "BOST3") {
+    velocidadBoostActiva = true;
+    setTimeout(() => {
+      velocidadBoostActiva = false;
+    }, 10000); // 10 segundos de velocidad
+  }
+
+  boost.disableBody(true, true);
+}
+function spawnBoost(scene) {
+  const tipos = ["BOST1", "BOST2", "BOST3"];
+  const tipo = Phaser.Utils.Array.GetRandom(tipos);
+  const x = Phaser.Math.Between(100, 700);
+  
+  const boost = boosts.create(x, 0, tipo);
+  boost.setScale(0.3).setBounce(0.5);
 }
