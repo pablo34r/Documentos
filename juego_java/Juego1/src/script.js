@@ -142,7 +142,6 @@ var scoreText;
 var vidas = 3;
 var vidasText;
 var puedePerderVida = true;
-var bullets;
 var boosts;
 var velocidadBoostActiva = false;
 var escudoActivo = false;
@@ -333,17 +332,17 @@ function update() {
 
   // Animaciones y movimiento
   if (this.keyW.isDown && cursors.right.isDown) {
-    executeActions(this, "lookUpRight");
+    executeActions(this, "lookUpRight", velocidad);
   } else if (this.keyW.isDown && cursors.left.isDown) {
-    executeActions(this, "lookUpLeft");
+    executeActions(this, "lookUpLeft", velocidad);
   } else if (cursors.left.isDown) {
-    executeActions(this, "left");
+    executeActions(this, "left", velocidad);
   } else if (cursors.right.isDown) {
-    executeActions(this, "right");
+    executeActions(this, "right", velocidad);
   } else if (this.keyW.isDown) {
-    executeActions(this, "lookUp");
+    executeActions(this, "lookUp", velocidad);
   } else {
-    executeActions(this, "turn");
+    executeActions(this, "turn", velocidad);
   }
 
   if (this.keyE.isDown && player.facing !== "turn") {
@@ -373,11 +372,20 @@ function update() {
   });
 }
 
-function executeActions(scene, action) {
+function executeActions(scene, action, velocidad) {
   const configDude = dudeConfigs[action];
   if (!configDude) return;
 
   player.anims.play(configDude.action, true);
+
+  // Fixed: Using velocidad parameter properly and scale it with boost
+  let velocidadX = 0;
+  if (action === "left" || action === "lookUpLeft") {
+    velocidadX = velocidadBoostActiva ? -300 : -160;
+  } else if (action === "right" || action === "lookUpRight") {
+    velocidadX = velocidadBoostActiva ? 300 : 160;
+  }
+
   player.setVelocityX(velocidadX);
   player.facing = configDude.facing;
   scene.weapon.setVisible(configDude.visible);
@@ -487,6 +495,11 @@ function EnemyFollowsPlayer(scene) {
 
 //----- Funciones del combate ----
 function hitEnemy(bullet, enemy) {
+  // Guardar la posición del enemigo antes de destruirlo
+  const enemyX = enemy.x;
+  const enemyY = enemy.y;
+  const scene = enemy.scene;
+
   // Destruir la bala
   bullet.destroy();
 
@@ -497,17 +510,19 @@ function hitEnemy(bullet, enemy) {
   score += 100;
   scoreText.setText("Puntuación: " + score);
 
-  createDestroyEffect(this, enemy.x, enemy.y);
+  // Crear efecto de destrucción
+  createDestroyEffect(scene, enemyX, enemyY);
 }
 
 // Función cuando un enemigo toca al jugador
 function playerHitByEnemy(player, enemy) {
-  if (!puedePerderVida) return;
+  if (!puedePerderVida || escudoActivo) return; // Fixed: Check shield status
 
   vidas--;
   vidasText.setText("Vidas: " + vidas);
 
-  playerTakeDamageEffect(this, player);
+  // Fixed: Pass the scene context properly
+  playerTakeDamageEffect(player.scene, player);
 
   // knockback
   const knockbackForce = 200;
@@ -539,27 +554,48 @@ function destroyBullet(bullet, platform) {
 
 // Efecto visual cuando un enemigo es destruido
 function createDestroyEffect(scene, x, y) {
-  for (let i = 0; i < 6; i++) {
-    const particle = scene.add.rectangle(x, y, 4, 4, 0xff0000);
-    const angle = (i / 6) * Math.PI * 2;
-    const speed = 80 + Math.random() * 40;
+  for (let i = 0; i < 8; i++) {
+    const particle = scene.add.rectangle(x, y, 6, 6, 0xff4444);
+    const angle = (i / 8) * Math.PI * 2;
+    const speed = 120 + Math.random() * 60;
 
-    // Calcular velocidad
-    const velX = Math.cos(angle) * speed;
-    const velY = Math.sin(angle) * speed;
+    // Calcular posición final
+    const endX = x + Math.cos(angle) * speed;
+    const endY = y + Math.sin(angle) * speed;
 
-    // Animar la partícula manualmente
+    // Crear tween más dinámico
     scene.tweens.add({
       targets: particle,
-      x: x + velX * 0.5,
-      y: y + velY * 0.5,
+      x: endX,
+      y: endY,
+      scaleX: 0,
+      scaleY: 0,
       alpha: 0,
-      duration: 400,
+      duration: 600,
+      ease: "Power2",
       onComplete: () => {
-        particle.destroy();
+        if (particle && particle.destroy) {
+          particle.destroy();
+        }
       },
     });
   }
+
+  // Agregar un flash central
+  const flash = scene.add.circle(x, y, 15, 0xffffff, 0.8);
+  scene.tweens.add({
+    targets: flash,
+    scaleX: 2,
+    scaleY: 2,
+    alpha: 0,
+    duration: 200,
+    ease: "Power2",
+    onComplete: () => {
+      if (flash && flash.destroy) {
+        flash.destroy();
+      }
+    },
+  });
 }
 
 // Efecto visual cuando el jugador recibe daño
@@ -578,6 +614,7 @@ function playerTakeDamageEffect(scene, player) {
     loop: true,
   });
 }
+
 function collectBoost(player, boost) {
   const tipo = boost.texture.key;
 
@@ -587,19 +624,22 @@ function collectBoost(player, boost) {
   } else if (tipo === "BOST2") {
     escudoActivo = true;
     player.setTint(0x00ffff);
-    setTimeout(() => {
+    // Fixed: Use Phaser's timer instead of setTimeout
+    player.scene.time.delayedCall(10000, () => {
       escudoActivo = false;
       player.clearTint();
-    }, 10000);
+    });
   } else if (tipo === "BOST3") {
     velocidadBoostActiva = true;
-    setTimeout(() => {
+    // Fixed: Use Phaser's timer instead of setTimeout
+    player.scene.time.delayedCall(10000, () => {
       velocidadBoostActiva = false;
-    }, 10000);
+    });
   }
 
   boost.disableBody(true, true);
 }
+
 function spawnBoost(scene) {
   const tipos = ["BOST1", "BOST2", "BOST3"];
   const tipo = Phaser.Utils.Array.GetRandom(tipos);
