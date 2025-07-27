@@ -142,12 +142,19 @@ var scoreText;
 var vidas = 3;
 var vidasText;
 var puedePerderVida = true;
+var bullets;
+var boosts;
+var velocidadBoostActiva = false;
+var escudoActivo = false;
 
 function preload() {
   this.load.image("sky", "assets/Luna pixelart.png");
   this.load.image("ground", "assets/ground.png");
   this.load.image("bullet", "assets/bala.png");
   this.load.image("gun", "assets/Gun.png");
+  this.load.image("BOST1", "assets/BOST1.png");
+  this.load.image("BOST2", "assets/BOST2.png");
+  this.load.image("BOST3", "assets/BOST3.png");
 
   //dude sprites
   this.load.spritesheet("dude", "assets/dude.png", {
@@ -174,6 +181,11 @@ function create() {
   //tiempo de intervalos de balas
   this.lastShootTime = 0;
   this.shootCooldown = 300;
+  boosts = this.physics.add.group();
+
+  boosts.create(300, 0, "BOST1").setScale(0.3).setBounce(0.5);
+  boosts.create(500, 0, "BOST2").setScale(0.3).setBounce(0.5);
+  boosts.create(700, 0, "BOST3").setScale(0.3).setBounce(0.5);
 
   this.add
     .image(0, 0, "sky")
@@ -196,6 +208,8 @@ function create() {
   //player
   player = this.physics.add.sprite(100, 700, "dude", 0);
   spritePhysics(this, player);
+  this.physics.add.collider(boosts, platforms);
+  this.physics.add.overlap(player, boosts, collectBoost, null, this);
 
   //gun
   this.weapon = this.add.sprite(player.x + 20, player.y - 20, "gun");
@@ -269,7 +283,6 @@ function create() {
     fill: "#fff",
   });
 
-  // Crear el texto de las vidas
   vidasText = this.add.text(16, 50, "Vidas: " + vidas, {
     fontSize: "32px",
     fill: "#fff",
@@ -292,10 +305,17 @@ function create() {
   this.physics.add.overlap(bullets, this.enemies, hitEnemy, null, this);
   this.physics.add.overlap(player, this.enemies, playerHitByEnemy, null, this);
   this.physics.add.collider(bullets, platforms, destroyBullet, null, this);
+
+  this.time.addEvent({
+    delay: 15000,
+    callback: () => spawnBoost(this),
+    loop: true,
+  });
 }
 
 function update() {
-  this.weapon.setPosition(player.x, player.y); //weapon
+  this.weapon.setPosition(player.x, player.y);
+  const velocidad = velocidadBoostActiva ? 300 : 160;
 
   //enemies
   EnemyFollowsPlayer(this);
@@ -353,15 +373,12 @@ function update() {
   });
 }
 
-//-----secondary functions
-
-//dude actions
 function executeActions(scene, action) {
   const configDude = dudeConfigs[action];
   if (!configDude) return;
 
   player.anims.play(configDude.action, true);
-  player.setVelocityX(configDude.setVelocityX);
+  player.setVelocityX(velocidadX);
   player.facing = configDude.facing;
   scene.weapon.setVisible(configDude.visible);
 
@@ -560,4 +577,34 @@ function playerTakeDamageEffect(scene, player) {
     },
     loop: true,
   });
+}
+function collectBoost(player, boost) {
+  const tipo = boost.texture.key;
+
+  if (tipo === "BOST1") {
+    vidas += 1;
+    vidasText.setText("Vidas: " + vidas);
+  } else if (tipo === "BOST2") {
+    escudoActivo = true;
+    player.setTint(0x00ffff);
+    setTimeout(() => {
+      escudoActivo = false;
+      player.clearTint();
+    }, 10000);
+  } else if (tipo === "BOST3") {
+    velocidadBoostActiva = true;
+    setTimeout(() => {
+      velocidadBoostActiva = false;
+    }, 10000);
+  }
+
+  boost.disableBody(true, true);
+}
+function spawnBoost(scene) {
+  const tipos = ["BOST1", "BOST2", "BOST3"];
+  const tipo = Phaser.Utils.Array.GetRandom(tipos);
+  const x = Phaser.Math.Between(100, 700);
+
+  const boost = boosts.create(x, 0, tipo);
+  boost.setScale(0.3).setBounce(0.5);
 }
