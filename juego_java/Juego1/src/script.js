@@ -99,6 +99,25 @@ function create() {
 
   platforms = this.physics.add.staticGroup();
 
+  this.waveCountdown = 30;
+        this.waveText = this.add.text(16, 90, 'Siguiente oleada en: 30s', {
+            fontSize: '22px',
+            fill: '#ffcc00'
+        }).setScrollFactor(0);
+
+        this.time.addEvent({
+            delay: 1000,
+            callback: () => {
+                this.waveCountdown--;
+                if (this.waveCountdown <= 0) {
+                    this.waveCountdown = 30;
+                    this.events.emit('nextWave');
+                }
+                this.waveText.setText('Siguiente oleada en: ' + this.waveCountdown + 's');
+            },
+            loop: true
+        });
+
   //plataformas superiores
   platforms.create(230, 450, "ground").setScale(1.2, 0.5).refreshBody(); //izquierda
   platforms.create(1800, 450, "ground").setScale(1.2, 0.5).refreshBody(); //central
