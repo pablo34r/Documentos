@@ -1,4 +1,5 @@
 import { bulletConfigs } from "../configs/bulletConfigs.js";
+
 export function shootBullet(scene, player, bullets) {
   const config = bulletConfigs[player.facing];
   if (!config) return;

@@ -22,4 +22,5 @@ export function executeActions(scene, action, velocidad, player) {
   );
   scene.weapon.setFlipX(configDude.flipX);
   scene.weapon.rotation = Phaser.Math.DegToRad(configDude.rotation);
+  // console.log("X: ", player.x, "Y: ", player.y);
 }
