@@ -1,6 +1,6 @@
 export function EnemyFollowsPlayer(scene, player, platforms) {
   scene.enemies.getChildren().forEach((enemy) => {
-    const speed = 150;
+    const speed = 90;
     const jumpForce = -330;
 
     // Calcular distancia al jugador
