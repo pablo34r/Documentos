@@ -22,6 +22,10 @@ const config = {
   type: Phaser.AUTO,
   width: 1920,
   height: 1000,
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+  },
   physics: {
     default: "arcade",
     arcade: {
@@ -95,6 +99,10 @@ function create() {
 
   platforms = this.physics.add.staticGroup();
 
+  //plataformas superiores
+  platforms.create(230, 450, "ground").setScale(1.2, 0.5).refreshBody(); //izquierda
+  platforms.create(1800, 450, "ground").setScale(1.2, 0.5).refreshBody(); //central
+
   //plataformas centrales
   platforms.create(260, 600, "ground").setScale(1.4, 0.5).refreshBody(); //izquierda
   platforms.create(760, 600, "ground").setScale(0.7, 0.3).refreshBody(); //central
@@ -118,7 +126,7 @@ function create() {
   });
 
   //player
-  player = this.physics.add.sprite(100, 700, "dude", 0);
+  player = this.physics.add.sprite(640, 541, "dude", 0);
   spritePhysics(this, player, platforms);
   this.physics.add.collider(boosts, platforms);
   this.physics.add.overlap(
@@ -185,14 +193,14 @@ function create() {
 
   this.anims.create({
     key: "enemyRight",
-    frames: this.anims.generateFrameNumbers("enemy", { start: 5, end: 8 }),
+    frames: this.anims.generateFrameNumbers("enemy", { start: 4, end: 7 }),
     frameRate: 10,
     repeat: -1,
   });
 
   this.anims.create({
     key: "enemyTurn",
-    frames: [{ key: "dude", frame: 4 }],
+    frames: [{ key: "enemy", frame: 4 }],
     frameRate: 20,
   });
 
