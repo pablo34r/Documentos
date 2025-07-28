@@ -242,6 +242,32 @@ function create() {
   //enemigos
   this.enemies = this.physics.add.group();
 
+  this.currentWave = 1;
+
+// Función para generar enemigos según la oleada
+  const spawnWaveEnemies = (wave) => {
+    const cantidad = wave === 1 ? 5 : wave === 2 ? 8 : 12;
+    for (let i = 0; i < cantidad; i++) {
+      spawnEnemies(this, portalPositions, platforms);
+    }
+  };
+
+// Cuando se emite el evento "nextWave", lanza la oleada correspondiente
+this.events.on('nextWave', () => {
+  if (this.currentWave > 3) {
+    this.waveText.setText("Todas las oleadas completadas");
+    return;
+  }
+
+  this.waveText.setText(`¡Oleada ${this.currentWave}!`);
+  spawnWaveEnemies(this.currentWave);
+  this.currentWave++;
+});
+
+// Lanzar la primera oleada de inmediato
+this.events.emit('nextWave');
+
+
   cursors = this.input.keyboard.createCursorKeys();
   bullets = this.physics.add.group();
 
@@ -260,6 +286,9 @@ function create() {
     callback: () => spawnBoost(this, boosts),
     loop: true,
   });
+
+  this.juegoTerminado = false;
+
 }
 
 function update() {
@@ -269,16 +298,31 @@ function update() {
   //enemies
   EnemyFollowsPlayer(this, player, platforms);
 
-  if (this.vidas <= 0) {
+  if (this.vidas <= 0 && !this.juegoTerminado) {
+    this.juegoTerminado = true;
+
+    // Detener físicas
+    this.physics.pause();
+
+    // Mostrar mensaje de fin
     this.add
       .text(960, 500, "Fin de la partida", {
         fontSize: "64px",
         fill: "#ff0000",
       })
       .setOrigin(0.5);
-    player.setVelocityX(0);
+
+    // Eliminar jugador
+    player.setTint(0xff0000);
+    player.anims.stop();
+    player.setVelocity(0);
+
+    // Detener nuevas oleadas
+    this.events.off('nextWave');
+
     return;
-  }
+}
+
 
   // Animaciones y movimiento
   if (this.keyW.isDown && cursors.right.isDown) {
