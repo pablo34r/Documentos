@@ -6,7 +6,7 @@ export function playerHitByEnemy(player, enemy) {
   if (!scene.puedePerderVida || scene.escudoActivo) return;
 
   scene.vidas--;
-  scene.vidasText.setText("Vidas: " + scene.vidas);
+  scene.vidasText.setText("x " + scene.vidas);
 
   playerTakesDamageEffect(scene, player);
 

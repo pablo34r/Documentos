@@ -57,6 +57,7 @@ function preload() {
   this.load.image("BOST1", "assets/BOST1.png");
   this.load.image("BOST2", "assets/BOST2.png");
   this.load.image("BOST3", "assets/BOST3.png");
+  this.load.image("corazon", "assets/Corazon.png");
 
   //dude sprites
   this.load.spritesheet("dude", "assets/dude.png", {
@@ -230,10 +231,11 @@ function create() {
   });
 
   this.vidas = 3;
-  this.vidasText = this.add.text(16, 50, "Vidas: " + this.vidas, {
+  this.vidasText = this.add.text(60, 50, "x " + this.vidas, {
     fontSize: "32px",
     fill: "#fff",
   });
+  this.corazonIcon = this.add.image(35, 73, "corazon").setScale(1.8).setScrollFactor(0);
 
   this.velocidadBoostActiva = false;
 
