@@ -168,6 +168,28 @@ function create() {
     null,
     this
   );
+  //Jefaso
+this.bossHealth = 1000;
+this.maxBossHealth = 1000;
+
+this.bossHealthBar = this.add.graphics();
+this.bossHealthBar.setScrollFactor(0);
+this.updateBossHealthBar = () => {
+  this.bossHealthBar.clear();
+  const width = 600;
+  const height = 20;
+  const x = 660;
+  const y = 20;
+
+  // Fondo (gris)
+  this.bossHealthBar.fillStyle(0x555555, 1);
+  this.bossHealthBar.fillRect(x, y, width, height);
+
+  // Barra roja proporcional a vida
+  const healthPercent = Phaser.Math.Clamp(this.bossHealth / this.maxBossHealth, 0, 1);
+  this.bossHealthBar.fillStyle(0xff0000, 1);
+  this.bossHealthBar.fillRect(x, y, width * healthPercent, height);
+};
 
   //gun
   this.weapon = this.add.sprite(player.x + 20, player.y - 20, "gun");
@@ -265,35 +287,52 @@ function create() {
   //enemigos
   this.enemies = this.physics.add.group();
 
-  this.currentWave = 1;
+  this.currentWave = 4;
 
   if (this.currentWave === 4) {
-    this.boss = this.physics.add.sprite(1500, 500, "boss", 0);
-    this.boss.body.setSize(250, 250);
-    this.boss.setOffset(135, 110);
-    spawnBoss(this);
-  } else {
-    const spawnWaveEnemies = (wave) => {
-      const cantidad = wave === 1 ? 5 : wave === 2 ? 8 : 12;
-      for (let i = 0; i < cantidad; i++) {
-        spawnEnemies(this, portalPositions, platforms);
-      }
-    };
+  this.boss = this.physics.add.sprite(1500, 500, "boss", 0);
+this.boss.texture.key = "boss"; 
+  this.boss.body.setSize(250, 250);
+  this.boss.setOffset(135, 110);
+  spawnBoss(this);
+} else {
+  const spawnWaveEnemies = (wave) => {
+    const cantidad = wave === 1 ? 5 : wave === 2 ? 8 : 12;
+    for (let i = 0; i < cantidad; i++) {
+      spawnEnemies(this, portalPositions, platforms);
+    }
+  };
 
-    this.events.on("nextWave", () => {
-      if (this.currentWave > 4) {
-        this.waveText.setText("Todas las oleadas completadas");
-        return;
-      }
+  this.events.on("nextWave", () => {
+    if (this.currentWave > 4) {
+      this.waveText.setText("Todas las oleadas completadas");
+      return;
+    }
 
-      this.waveText.setText(`¡Oleada ${this.currentWave}!`);
+    this.waveText.setText(`¡Oleada ${this.currentWave}!`);
+
+    
+    if (this.currentWave === 4) {
+      this.boss = this.physics.add.sprite(1500, 500, "boss", 0);
+      this.boss.body.setSize(250, 250);
+      this.boss.setOffset(135, 110);
+      spawnBoss(this);
+      this.bossHealth = 1000;
+this.updateBossHealthBar();
+
+
+      this.physics.add.overlap(bullets, this.boss, hitEnemy, null, this);
+      this.physics.add.overlap(player, this.boss, playerHitByEnemy, null, this);
+    } else {
       spawnWaveEnemies(this.currentWave);
-      this.currentWave++;
-    });
+    }
 
-    // Lanzar la primera oleada de inmediato
-    this.events.emit("nextWave");
-  }
+    this.currentWave++;
+  });
+
+  // Inicia la primera oleada
+  this.events.emit("nextWave");
+}
 
   cursors = this.input.keyboard.createCursorKeys();
   bullets = this.physics.add.group();
@@ -391,5 +430,22 @@ function update() {
 
   if (this.boss && this.boss.active && this.boss.health > 0) {
     BossFollowsPlayer(this, player);
+  }
+}
+function actualizarFaseBoss(scene) {
+  const health = scene.bossHealth;
+
+  if (health <= 750 && health > 500) {
+    // Fase 1: velocidad media
+    scene.boss.setVelocityX(150);
+    scene.boss.setTint(0xffff00); // amarillo
+  } else if (health <= 500 && health > 250) {
+    // Fase 2: más agresivo
+    scene.boss.setVelocityX(250);
+    scene.boss.setTint(0xff9900); // naranja
+  } else if (health <= 250) {
+    // Fase 3: velocidad máxima
+    scene.boss.setVelocityX(350);
+    scene.boss.setTint(0xff0000); // rojo
   }
 }
