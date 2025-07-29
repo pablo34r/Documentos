@@ -6,12 +6,12 @@ export function hitEnemy(bullet, enemy) {
   const scene = enemy.scene;
 
   bullet.destroy();
-  enemy.destroy();
-
-  // Aumentar puntuación
-  scene.score += 100;
-  scene.scoreText.setText("Puntuación: " + scene.score);
-
-  // Crear efecto de destrucción
+  if (enemy.health <= 0) {
+    enemy.destroy();
+    scene.score += 100;
+    scene.scoreText.setText("Puntuación: " + scene.score);
+  } else {
+    enemy.health -= 1;
+  }
   createDestroyEffect(scene, enemyX, enemyY);
 }
