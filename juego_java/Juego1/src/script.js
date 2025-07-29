@@ -287,7 +287,7 @@ this.updateBossHealthBar = () => {
   //enemigos
   this.enemies = this.physics.add.group();
 
-  this.currentWave = 4;
+  this.currentWave = 1;
 
   if (this.currentWave === 4) {
   this.boss = this.physics.add.sprite(1500, 500, "boss", 0);
