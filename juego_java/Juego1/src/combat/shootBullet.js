@@ -13,6 +13,4 @@ export function shootBullet(scene, player, bullets) {
   bullet.setVelocity(config.velocityX, config.velocityY);
   bullet.setFlipX(config.flipX);
   bullet.rotation = Phaser.Math.DegToRad(config.rotation);
-
-  bullet.damage = 1;
 }

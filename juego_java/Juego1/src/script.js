@@ -17,6 +17,8 @@ import { shootBullet } from "./combat/shootBullet.js";
 //boosts
 import { spawnBoost } from "./boost/spawnBoost.js";
 import { collectBoost } from "./boost/collectBoost.js";
+import { spawnBoss } from "./enemies/boss.js";
+import { BossFollowsPlayer } from "./enemies/bossFollorPlayer.js";
 
 const config = {
   type: Phaser.AUTO,
@@ -74,6 +76,14 @@ function preload() {
     frameWidth: 320,
     frameHeight: 320,
   });
+
+  //boss sprites
+  this.load.spritesheet("boss", "assets/jefe.png", {
+    frameWidth: 484,
+    frameHeight: 516,
+    margin: 0,
+    spacing: 0,
+  });
 }
 
 function create() {
@@ -101,23 +111,25 @@ function create() {
   platforms = this.physics.add.staticGroup();
 
   this.waveCountdown = 30;
-        this.waveText = this.add.text(16, 90, 'Siguiente oleada en: 30s', {
-            fontSize: '22px',
-            fill: '#ffcc00'
-        }).setScrollFactor(0);
+  this.waveText = this.add
+    .text(16, 90, "Siguiente oleada en: 30s", {
+      fontSize: "22px",
+      fill: "#ffcc00",
+    })
+    .setScrollFactor(0);
 
-        this.time.addEvent({
-            delay: 1000,
-            callback: () => {
-                this.waveCountdown--;
-                if (this.waveCountdown <= 0) {
-                    this.waveCountdown = 30;
-                    this.events.emit('nextWave');
-                }
-                this.waveText.setText('Siguiente oleada en: ' + this.waveCountdown + 's');
-            },
-            loop: true
-        });
+  this.time.addEvent({
+    delay: 1000,
+    callback: () => {
+      this.waveCountdown--;
+      if (this.waveCountdown <= 0) {
+        this.waveCountdown = 30;
+        this.events.emit("nextWave");
+      }
+      this.waveText.setText("Siguiente oleada en: " + this.waveCountdown + "s");
+    },
+    loop: true,
+  });
 
   //plataformas superiores
   platforms.create(230, 450, "ground").setScale(1.2, 0.5).refreshBody(); //izquierda
@@ -224,18 +236,29 @@ function create() {
     frameRate: 20,
   });
 
+  //boss animaciones
+  this.anims.create({
+    key: "bossTurn",
+    frames: this.anims.generateFrameNumbers("boss", { start: 0, end: 6 }),
+    frameRate: 10,
+    repeat: -1,
+  });
+
   this.score = 0;
   this.scoreText = this.add.text(16, 16, "Puntuación: 0", {
     fontSize: "32px",
     fill: "#fff",
   });
 
-  this.vidas = 3;
+  this.vidas = 1000;
   this.vidasText = this.add.text(60, 50, "x " + this.vidas, {
     fontSize: "32px",
     fill: "#fff",
   });
-  this.corazonIcon = this.add.image(35, 73, "corazon").setScale(1.8).setScrollFactor(0);
+  this.corazonIcon = this.add
+    .image(35, 73, "corazon")
+    .setScale(1.8)
+    .setScrollFactor(0);
 
   this.velocidadBoostActiva = false;
 
@@ -244,29 +267,33 @@ function create() {
 
   this.currentWave = 1;
 
-// Función para generar enemigos según la oleada
-  const spawnWaveEnemies = (wave) => {
-    const cantidad = wave === 1 ? 5 : wave === 2 ? 8 : 12;
-    for (let i = 0; i < cantidad; i++) {
-      spawnEnemies(this, portalPositions, platforms);
-    }
-  };
+  if (this.currentWave === 4) {
+    this.boss = this.physics.add.sprite(1500, 500, "boss", 0);
+    this.boss.body.setSize(250, 250);
+    this.boss.setOffset(135, 110);
+    spawnBoss(this);
+  } else {
+    const spawnWaveEnemies = (wave) => {
+      const cantidad = wave === 1 ? 5 : wave === 2 ? 8 : 12;
+      for (let i = 0; i < cantidad; i++) {
+        spawnEnemies(this, portalPositions, platforms);
+      }
+    };
 
-// Cuando se emite el evento "nextWave", lanza la oleada correspondiente
-this.events.on('nextWave', () => {
-  if (this.currentWave > 3) {
-    this.waveText.setText("Todas las oleadas completadas");
-    return;
+    this.events.on("nextWave", () => {
+      if (this.currentWave > 4) {
+        this.waveText.setText("Todas las oleadas completadas");
+        return;
+      }
+
+      this.waveText.setText(`¡Oleada ${this.currentWave}!`);
+      spawnWaveEnemies(this.currentWave);
+      this.currentWave++;
+    });
+
+    // Lanzar la primera oleada de inmediato
+    this.events.emit("nextWave");
   }
-
-  this.waveText.setText(`¡Oleada ${this.currentWave}!`);
-  spawnWaveEnemies(this.currentWave);
-  this.currentWave++;
-});
-
-// Lanzar la primera oleada de inmediato
-this.events.emit('nextWave');
-
 
   cursors = this.input.keyboard.createCursorKeys();
   bullets = this.physics.add.group();
@@ -278,7 +305,9 @@ this.events.emit('nextWave');
 
   //collisions
   this.physics.add.overlap(bullets, this.enemies, hitEnemy, null, this);
+  this.physics.add.overlap(bullets, this.boss, hitEnemy, null, this);
   this.physics.add.overlap(player, this.enemies, playerHitByEnemy, null, this);
+  this.physics.add.overlap(player, this.boss, playerHitByEnemy, null, this);
   this.physics.add.collider(bullets, platforms, destroyBullet, null, this);
 
   this.time.addEvent({
@@ -288,7 +317,6 @@ this.events.emit('nextWave');
   });
 
   this.juegoTerminado = false;
-
 }
 
 function update() {
@@ -300,9 +328,6 @@ function update() {
 
   if (this.vidas <= 0 && !this.juegoTerminado) {
     this.juegoTerminado = true;
-
-    // Detener físicas
-    this.physics.pause();
 
     // Mostrar mensaje de fin
     this.add
@@ -318,11 +343,10 @@ function update() {
     player.setVelocity(0);
 
     // Detener nuevas oleadas
-    this.events.off('nextWave');
+    this.events.off("nextWave");
 
     return;
-}
-
+  }
 
   // Animaciones y movimiento
   if (this.keyW.isDown && cursors.right.isDown) {
@@ -364,4 +388,8 @@ function update() {
       bullet.destroy();
     }
   });
+
+  if (this.boss && this.boss.active && this.boss.health > 0) {
+    BossFollowsPlayer(this, player);
+  }
 }
