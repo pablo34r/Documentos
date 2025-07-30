@@ -209,9 +209,11 @@ function create() {
     this
   );
   //Jefaso
-this.bossHealth = 1000;
-this.maxBossHealth = 1000;
+this.maxBossHealth = 10;
+this.bossHealth = this.maxBossHealth;
+this.boss = null; // No crees el jefe aquí
 
+// Barra de vida del jefe
 this.bossHealthBar = this.add.graphics();
 this.bossHealthBar.setScrollFactor(0);
 this.updateBossHealthBar = () => {
@@ -220,15 +222,13 @@ this.updateBossHealthBar = () => {
   const height = 20;
   const x = 660;
   const y = 20;
-
-  // Fondo (gris)
   this.bossHealthBar.fillStyle(0x555555, 1);
   this.bossHealthBar.fillRect(x, y, width, height);
-
-  // Barra roja proporcional a vida
-  const healthPercent = Phaser.Math.Clamp(this.bossHealth / this.maxBossHealth, 0, 1);
-  this.bossHealthBar.fillStyle(0xff0000, 1);
-  this.bossHealthBar.fillRect(x, y, width * healthPercent, height);
+  if (this.boss && this.boss.active) {
+    const healthPercent = Phaser.Math.Clamp(this.bossHealth / this.maxBossHealth, 0, 1);
+    this.bossHealthBar.fillStyle(0xff0000, 1);
+    this.bossHealthBar.fillRect(x, y, width * healthPercent, height);
+  }
 };
 
   //gun
@@ -327,56 +327,64 @@ this.updateBossHealthBar = () => {
   //enemigos
   this.enemies = this.physics.add.group();
 
-  this.currentWave = 4;
+  this.currentWave = 1;
+  this.maxBossHealth = 10;
+  this.bossHealth = this.maxBossHealth;
+  this.boss = null; // No crees el jefe aquí
 
-  if (this.currentWave === 4) {
-  this.boss = this.physics.add.sprite(1500, 500, "boss", 0);
-this.boss.texture.key = "boss"; 
-  this.boss.body.setSize(250, 250);
-  this.boss.setOffset(135, 110);
-  spawnBoss(this);
-} else {
+  // Barra de vida del jefe
+  this.bossHealthBar = this.add.graphics();
+  this.bossHealthBar.setScrollFactor(0);
+  this.updateBossHealthBar = () => {
+    this.bossHealthBar.clear();
+    const width = 600;
+    const height = 20;
+    const x = 660;
+    const y = 20;
+    this.bossHealthBar.fillStyle(0x555555, 1);
+    this.bossHealthBar.fillRect(x, y, width, height);
+    if (this.boss && this.boss.active) {
+      const healthPercent = Phaser.Math.Clamp(this.bossHealth / this.maxBossHealth, 0, 1);
+      this.bossHealthBar.fillStyle(0xff0000, 1);
+      this.bossHealthBar.fillRect(x, y, width * healthPercent, height);
+    }
+  };
+
   const spawnWaveEnemies = (wave) => {
     const cantidad = wave === 1 ? 5 : wave === 2 ? 8 : 12;
-    // Mezcla las posiciones para que no siempre salgan en el mismo lugar
     const posiciones = Phaser.Utils.Array.Shuffle([...portalPositions]);
     for (let i = 0; i < cantidad; i++) {
-      // Usa una posición diferente para cada enemigo
       const pos = posiciones[i % posiciones.length];
       spawnEnemies(this, [pos], platforms);
     }
   };
 
   this.events.on("nextWave", () => {
+    if (this.currentWave === 4) {
+      // Spawnea el jefe
+      this.boss = this.physics.add.sprite(1500, 500, "boss", 0);
+      this.boss.body.setSize(250, 250);
+      this.boss.setOffset(135, 110);
+      this.bossHealth = this.maxBossHealth;
+      spawnBoss(this);
+      this.updateBossHealthBar();
+      this.physics.add.overlap(bullets, this.boss, hitEnemy, null, this);
+      this.physics.add.overlap(player, this.boss, playerHitByEnemy, null, this);
+      this.waveText.setText("¡JEFE FINAL!");
+      this.currentWave++;
+      return;
+    }
     if (this.currentWave > 4) {
       this.waveText.setText("Todas las oleadas completadas");
       return;
     }
-
     this.waveText.setText(`¡Oleada ${this.currentWave}!`);
-
-    
-    if (this.currentWave === 4) {
-      this.boss = this.physics.add.sprite(1500, 500, "boss", 0);
-      this.boss.body.setSize(250, 250);
-      this.boss.setOffset(135, 110);
-      spawnBoss(this);
-      this.bossHealth = 1000;
-this.updateBossHealthBar();
-
-
-      this.physics.add.overlap(bullets, this.boss, hitEnemy, null, this);
-      this.physics.add.overlap(player, this.boss, playerHitByEnemy, null, this);
-    } else {
-      spawnWaveEnemies(this.currentWave);
-    }
-
+    spawnWaveEnemies(this.currentWave);
     this.currentWave++;
   });
 
   // Inicia la primera oleada
   this.events.emit("nextWave");
-}
 
   cursors = this.input.keyboard.createCursorKeys();
   bullets = this.physics.add.group();
@@ -474,21 +482,19 @@ function update() {
     BossFollowsPlayer(this, player);
   }
 }
-function actualizarFaseBoss(scene) {
-  const health = scene.bossHealth;
-
-  if (health <= 750 && health > 500) {
-    // Fase 1: velocidad media
-    scene.boss.setVelocityX(150);
-    scene.boss.setTint(0xffff00); // amarillo
-  } else if (health <= 500 && health > 250) {
-    // Fase 2: más agresivo
-    scene.boss.setVelocityX(250);
-    scene.boss.setTint(0xff9900); // naranja
-  } else if (health <= 250) {
-    // Fase 3: velocidad máxima
-    scene.boss.setVelocityX(350);
-    scene.boss.setTint(0xff0000); // rojo
-  }
-}
+// function actualizarFaseBoss(scene) {
+//   if (scene.bossHealth <= 750 && scene.bossHealth > 500) {
+//     // Fase 1: velocidad media
+//     scene.boss.setVelocityX(150);
+//     scene.boss.setTint(0xffff00); // amarillo
+//   } else if (scene.bossHealth <= 500 && scene.bossHealth > 250) {
+//     // Fase 2: más agresivo
+//     scene.boss.setVelocityX(250);
+//     scene.boss.setTint(0xff9900); // naranja
+//   } else if (scene.bossHealth <= 250) {
+//     // Fase 3: velocidad máxima
+//     scene.boss.setVelocityX(350);
+//     scene.boss.setTint(0xff0000); // rojo
+//   }
+// }
 
