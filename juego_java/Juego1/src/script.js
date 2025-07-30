@@ -20,6 +20,48 @@ import { collectBoost } from "./boost/collectBoost.js";
 import { spawnBoss } from "./enemies/boss.js";
 import { BossFollowsPlayer } from "./enemies/bossFollorPlayer.js";
 
+
+class CinematicaScene extends Phaser.Scene {
+  constructor() {
+    super({ key: 'CinematicaScene' });
+  }
+
+  preload() {
+    this.load.video('intro', 'assets/videoInicial.mp4', 'loadeddata', false, true);
+  }
+
+  create() {
+    // Cambia el tamaño del video aquí (por ejemplo, 960x540)
+    const video = this.add.video(960, 500, 'intro').setOrigin(0.5);
+    video.setDisplaySize(360, 200);
+
+    video.play(true);
+    video.setMute(false);
+
+    // Saltar cinemática con click o tecla
+    this.input.once('pointerdown', () => this.endCinematic(video));
+    this.input.keyboard.once('keydown', () => this.endCinematic(video));
+
+    // Cuando termina el video
+    video.on('complete', () => this.endCinematic(video));
+  }
+
+  endCinematic(video) {
+    video.stop();
+    this.scene.start('MainScene');
+  }
+}
+
+class MainScene extends Phaser.Scene {
+  constructor() {
+    super({ key: 'MainScene' });
+  }
+  preload() { preload.call(this); }
+  create() { create.call(this); }
+  update() { update.call(this); }
+}
+
+
 const config = {
   type: Phaser.AUTO,
   width: 1920,
@@ -35,12 +77,9 @@ const config = {
       debug: true,
     },
   },
-  scene: {
-    preload: preload,
-    create: create,
-    update: update,
-  },
+  scene: [CinematicaScene, MainScene], // <-- Cambia aquí
 };
+
 
 var game = new Phaser.Game(config);
 
@@ -84,6 +123,7 @@ function preload() {
     margin: 0,
     spacing: 0,
   });
+  this.load.video('intro', 'assets/videoInicial.mp4', 'loadeddata', false, true);
 }
 
 function create() {
@@ -449,3 +489,4 @@ function actualizarFaseBoss(scene) {
     scene.boss.setTint(0xff0000); // rojo
   }
 }
+
