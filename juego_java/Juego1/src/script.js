@@ -31,7 +31,6 @@ class CinematicaScene extends Phaser.Scene {
   }
 
   create() {
-    // Cambia el tamaño del video aquí (por ejemplo, 960x540)
     const video = this.add.video(960, 500, 'intro').setOrigin(0.5);
     video.setDisplaySize(360, 200);
 
@@ -74,10 +73,10 @@ const config = {
     default: "arcade",
     arcade: {
       gravity: { y: 300 },
-      debug: true,
+      debug: false,
     },
   },
-  scene: [CinematicaScene, MainScene], // <-- Cambia aquí
+  scene: [CinematicaScene, MainScene],
 };
 
 
@@ -94,7 +93,6 @@ function preload() {
   this.load.image("ground", "assets/ground.png");
   this.load.image("bullet", "assets/bala.png");
   this.load.image("gun", "assets/Gun.png");
-  this.load.image("portal", "assets/Portal.png");
   this.load.image("BOST1", "assets/BOST1.png");
   this.load.image("BOST2", "assets/BOST2.png");
   this.load.image("BOST3", "assets/BOST3.png");
@@ -123,10 +121,18 @@ function preload() {
     margin: 0,
     spacing: 0,
   });
+
+  //portal
+  this.load.spritesheet("portal", "assets/portal.png", {
+    frameWidth: 32,
+    frameHeight: 32,
+  });
   this.load.video('intro', 'assets/videoInicial.mp4', 'loadeddata', false, true);
 }
 
 function create() {
+  this.maxBossHealth = 10; // Define la vida máxima del jefe
+this.bossHealth = this.maxBossHealth;
   //claves personalizadas
   this.keyW = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
   this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
@@ -150,9 +156,9 @@ function create() {
 
   platforms = this.physics.add.staticGroup();
 
-  this.waveCountdown = 30;
+  this.waveCountdown = 15;
   this.waveText = this.add
-    .text(16, 90, "Siguiente oleada en: 30s", {
+    .text(16, 90, "Siguiente oleada en: 15s", {
       fontSize: "22px",
       fill: "#ffcc00",
     })
@@ -163,7 +169,7 @@ function create() {
     callback: () => {
       this.waveCountdown--;
       if (this.waveCountdown <= 0) {
-        this.waveCountdown = 30;
+        this.waveCountdown = 15;
         this.events.emit("nextWave");
       }
       this.waveText.setText("Siguiente oleada en: " + this.waveCountdown + "s");
@@ -190,13 +196,6 @@ function create() {
   platforms.create(970, 935, "ground").setScale(0.5, 0.6).refreshBody(); //centro
   platforms.create(1550, 935, "ground").setScale(2, 1).refreshBody(); //derecha
 
-  //portales
-  this.portal = this.physics.add.staticGroup();
-
-  portalPositions.forEach((pos) => {
-    this.portal.create(pos.x, pos.y, "portal").setScale(0.4).refreshBody();
-  });
-
   //player
   player = this.physics.add.sprite(640, 541, "dude", 0);
   spritePhysics(this, player, platforms);
@@ -211,25 +210,7 @@ function create() {
   //Jefaso
 this.maxBossHealth = 10;
 this.bossHealth = this.maxBossHealth;
-this.boss = null; // No crees el jefe aquí
-
-// Barra de vida del jefe
-this.bossHealthBar = this.add.graphics();
-this.bossHealthBar.setScrollFactor(0);
-this.updateBossHealthBar = () => {
-  this.bossHealthBar.clear();
-  const width = 600;
-  const height = 20;
-  const x = 660;
-  const y = 20;
-  this.bossHealthBar.fillStyle(0x555555, 1);
-  this.bossHealthBar.fillRect(x, y, width, height);
-  if (this.boss && this.boss.active) {
-    const healthPercent = Phaser.Math.Clamp(this.bossHealth / this.maxBossHealth, 0, 1);
-    this.bossHealthBar.fillStyle(0xff0000, 1);
-    this.bossHealthBar.fillRect(x, y, width * healthPercent, height);
-  }
-};
+this.boss = null; 
 
   //gun
   this.weapon = this.add.sprite(player.x + 20, player.y - 20, "gun");
@@ -306,6 +287,14 @@ this.updateBossHealthBar = () => {
     repeat: -1,
   });
 
+  //portal
+  this.anims.create({
+    key: "portalAnimation",
+    frames: this.anims.generateFrameNumbers("portal", { start: 0, end: 19 }),
+    frameRate: 10,
+    repeat: -1,
+});
+
   this.score = 0;
   this.scoreText = this.add.text(16, 16, "Puntuación: 0", {
     fontSize: "32px",
@@ -330,25 +319,15 @@ this.updateBossHealthBar = () => {
   this.currentWave = 1;
   this.maxBossHealth = 10;
   this.bossHealth = this.maxBossHealth;
-  this.boss = null; // No crees el jefe aquí
+  this.boss = null; 
+    //portales
+  this.portal = this.physics.add.staticGroup();
 
-  // Barra de vida del jefe
-  this.bossHealthBar = this.add.graphics();
-  this.bossHealthBar.setScrollFactor(0);
-  this.updateBossHealthBar = () => {
-    this.bossHealthBar.clear();
-    const width = 600;
-    const height = 20;
-    const x = 660;
-    const y = 20;
-    this.bossHealthBar.fillStyle(0x555555, 1);
-    this.bossHealthBar.fillRect(x, y, width, height);
-    if (this.boss && this.boss.active) {
-      const healthPercent = Phaser.Math.Clamp(this.bossHealth / this.maxBossHealth, 0, 1);
-      this.bossHealthBar.fillStyle(0xff0000, 1);
-      this.bossHealthBar.fillRect(x, y, width * healthPercent, height);
-    }
-  };
+portalPositions.forEach((pos) => {
+    const portal = this.portal.create(pos.x, pos.y, "portal").setScale(4).refreshBody();
+    // Iniciar la animación para cada portal individualmente
+    portal.play("portalAnimation");
+});
 
   const spawnWaveEnemies = (wave) => {
     const cantidad = wave === 1 ? 5 : wave === 2 ? 8 : 12;
@@ -361,23 +340,42 @@ this.updateBossHealthBar = () => {
 
   this.events.on("nextWave", () => {
     if (this.currentWave === 4) {
-      // Spawnea el jefe
-      this.boss = this.physics.add.sprite(1500, 500, "boss", 0);
-      this.boss.body.setSize(250, 250);
-      this.boss.setOffset(135, 110);
-      this.bossHealth = this.maxBossHealth;
-      spawnBoss(this);
-      this.updateBossHealthBar();
-      this.physics.add.overlap(bullets, this.boss, hitEnemy, null, this);
-      this.physics.add.overlap(player, this.boss, playerHitByEnemy, null, this);
-      this.waveText.setText("¡JEFE FINAL!");
-      this.currentWave++;
-      return;
+        let jefesCreados = 0;
+        
+        const spawnJefe = () => {
+            const randomX = Phaser.Math.Between(100, 1800);
+            const boss = this.physics.add.sprite(randomX, 0, "boss", 0);
+            boss.body.setSize(250, 250);
+            boss.body.setOffset(135, 110);
+            boss.setScale(0.8);
+            boss.health = 10;
+            boss.setCollideWorldBounds(true);  
+            boss.setBounce(0.2);               
+            
+            spawnBoss(boss);
+            
+            // Añadir colisiones
+            this.physics.add.overlap(bullets, boss, hitEnemy, null, this);
+            this.physics.add.overlap(player, boss, playerHitByEnemy, null, this);
+            
+            jefesCreados++;
+            
+            if (jefesCreados < 15) {
+                this.time.delayedCall(800, spawnJefe);
+            }
+        };
+        
+        spawnJefe();
+        this.waveText.setText("¡INVASIÓN DE JEFES!");
+        this.currentWave++;
+        return;
     }
+    
     if (this.currentWave > 4) {
       this.waveText.setText("Todas las oleadas completadas");
       return;
     }
+    
     this.waveText.setText(`¡Oleada ${this.currentWave}!`);
     spawnWaveEnemies(this.currentWave);
     this.currentWave++;
@@ -478,23 +476,14 @@ function update() {
     }
   });
 
-  if (this.boss && this.boss.active) {
-    BossFollowsPlayer(this, player);
-  }
+  // Obtener todos los jefes activos y hacer que sigan al jugador
+  const bosses = this.children.list.filter(child => 
+    child.texture && child.texture.key === 'boss' && child.active
+  );
+  
+  // Actualizar el movimiento de cada jefe
+  bosses.forEach(boss => {
+    BossFollowsPlayer(boss, player);
+  });
 }
-// function actualizarFaseBoss(scene) {
-//   if (scene.bossHealth <= 750 && scene.bossHealth > 500) {
-//     // Fase 1: velocidad media
-//     scene.boss.setVelocityX(150);
-//     scene.boss.setTint(0xffff00); // amarillo
-//   } else if (scene.bossHealth <= 500 && scene.bossHealth > 250) {
-//     // Fase 2: más agresivo
-//     scene.boss.setVelocityX(250);
-//     scene.boss.setTint(0xff9900); // naranja
-//   } else if (scene.bossHealth <= 250) {
-//     // Fase 3: velocidad máxima
-//     scene.boss.setVelocityX(350);
-//     scene.boss.setTint(0xff0000); // rojo
-//   }
-// }
 
