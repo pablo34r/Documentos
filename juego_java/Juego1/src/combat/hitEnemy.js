@@ -15,7 +15,6 @@ function actualizarFaseBoss(scene) {
   }
 }
 
-
 export function hitEnemy(bullet, enemy) {
   const scene = enemy.scene;
   const enemyX = enemy.x;
@@ -24,27 +23,23 @@ export function hitEnemy(bullet, enemy) {
   bullet.destroy();
 
   if (enemy.isBoss) {
-
     scene.bossHealth -= 50;
     scene.updateBossHealthBar();
     createDestroyEffect(scene, enemyX, enemyY);
 
     if (scene.bossHealth <= 0) {
       enemy.destroy();
-      scene.score += 500; 
+      scene.score += 500;
       scene.scoreText.setText("Puntuación: " + scene.score);
       scene.bossHealth = 0;
       scene.updateBossHealthBar();
     } else {
-      actualizarFaseBoss(scene); 
+      actualizarFaseBoss(scene);
     }
 
     return;
   }
 
-  if (enemy.health === undefined) {
-    enemy.health = 3;
-  }
   enemy.health -= 1;
 
   if (enemy.health <= 0) {

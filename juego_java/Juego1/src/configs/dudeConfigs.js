@@ -54,7 +54,7 @@ export const dudeConfigs = {
     action: "turn",
     weaponPositionX: 0,
     weaponPositionY: 0,
-    facing: "turn",
+    facing: "right",
     rotation: 0,
     flipX: false,
     visible: false,

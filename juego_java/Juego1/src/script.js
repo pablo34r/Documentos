@@ -327,7 +327,7 @@ this.updateBossHealthBar = () => {
   //enemigos
   this.enemies = this.physics.add.group();
 
-  this.currentWave = 1;
+  this.currentWave = 4;
 
   if (this.currentWave === 4) {
   this.boss = this.physics.add.sprite(1500, 500, "boss", 0);
@@ -338,8 +338,12 @@ this.boss.texture.key = "boss";
 } else {
   const spawnWaveEnemies = (wave) => {
     const cantidad = wave === 1 ? 5 : wave === 2 ? 8 : 12;
+    // Mezcla las posiciones para que no siempre salgan en el mismo lugar
+    const posiciones = Phaser.Utils.Array.Shuffle([...portalPositions]);
     for (let i = 0; i < cantidad; i++) {
-      spawnEnemies(this, portalPositions, platforms);
+      // Usa una posición diferente para cada enemigo
+      const pos = posiciones[i % posiciones.length];
+      spawnEnemies(this, [pos], platforms);
     }
   };
 
@@ -376,8 +380,6 @@ this.updateBossHealthBar();
 
   cursors = this.input.keyboard.createCursorKeys();
   bullets = this.physics.add.group();
-
-  spawnEnemies(this, portalPositions, platforms);
 
   this.puedePerderVida = true;
   this.escudoActivo = false;
@@ -468,7 +470,7 @@ function update() {
     }
   });
 
-  if (this.boss && this.boss.active && this.boss.health > 0) {
+  if (this.boss && this.boss.active) {
     BossFollowsPlayer(this, player);
   }
 }
